@@ -40,6 +40,21 @@ variable "sql_admin_password" {
   sensitive   = true
 }
 
+variable "tenant_id" {
+  type        = string
+  description = "Azure AD tenant ID (for Azure AD admin configuration)"
+}
+
+variable "azuread_admin_login_username" {
+  type        = string
+  description = "Azure AD admin login username (group display name or UPN)"
+}
+
+variable "azuread_admin_object_id" {
+  type        = string
+  description = "Azure AD object id for the SQL Azure AD admin (group or user)"
+}
+
 
 variable "sql_sku_name" {
   type = string
@@ -73,6 +88,14 @@ resource "azurerm_mssql_server" "sql_server" {
   minimum_tls_version           = "1.2"
   public_network_access_enabled = false
 
+  azuread_administrator {
+    login_username = var.azuread_admin_login_username
+    object_id      = var.azuread_admin_object_id
+    tenant_id      = var.tenant_id
+
+    azuread_authentication_only = false
+  }
+
   tags = {
     Project = var.project_name
     Env     = var.env
@@ -99,6 +122,9 @@ resource "azurerm_mssql_database" "sql_db" {
 
   # On peut activer ça plus tard si besoin
   auto_pause_delay_in_minutes = -1
+
+  zone_redundant = true
+  ledger_enabled = true
 
   tags = {
     Project = var.project_name

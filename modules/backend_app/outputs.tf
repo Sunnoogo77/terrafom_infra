@@ -24,8 +24,8 @@ output "backend_app_fqdn" {
 }
 
 output "backend_app_url" {
-  description = "Public URL of the backend Container App (if ingress enabled)"
-  value       = try("https://${azurerm_container_app.backend.ingress[0].fqdn}", null)
+  description = "Backend Container App ingress host (FQDN) if enabled"
+  value       = try(azurerm_container_app.backend.ingress[0].fqdn, null)
 }
 
 output "backend_identity_principal_id" {

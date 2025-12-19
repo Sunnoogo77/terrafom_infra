@@ -23,6 +23,10 @@ module "database" {
   sql_admin_password = var.sql_admin_password
   sql_sku_name       = var.sql_sku_name
 
+  tenant_id                    = data.azurerm_client_config.current.tenant_id
+  azuread_admin_login_username = module.groups.display_names.devsecops
+  azuread_admin_object_id      = module.groups.object_ids.devsecops
+
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 }
 
@@ -36,6 +40,8 @@ module "storage" {
   subnet_endpoints_id = module.network.subnet_endpoints_id
 
   storage_sku_name = var.storage_sku_name
+
+  cmk_key_id = module.keyvault.storage_cmk_key_id
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 }
@@ -63,9 +69,10 @@ module "acr" {
   resource_group_name = module.network.resource_group_name
 
   subnet_endpoints_id     = module.network.subnet_endpoints_id
-  enable_private_endpoint = false
+  enable_private_endpoint = true
 
-  sku = "Basic"
+  sku                      = "Premium"
+  georeplication_locations = ["northeurope"]
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 }
@@ -155,6 +162,8 @@ module "rbac" {
   sql_id     = module.database.sql_server_id
   acr_id     = module.acr.acr_id
   law_id     = module.monitoring.log_analytics_workspace_id
+
+  storage_cmk_principal_id = module.storage.storage_identity_principal_id
 
   groups = {
     infra     = module.groups.object_ids.infra

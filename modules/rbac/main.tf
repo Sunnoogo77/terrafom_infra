@@ -94,6 +94,14 @@ resource "azurerm_role_assignment" "kv_soc_reader" {
   principal_id         = var.groups.soc
 }
 
+# Allow Storage Account to use Key Vault key for CMK encryption
+resource "azurerm_role_assignment" "kv_storage_cmk_user" {
+  count                = var.storage_cmk_principal_id == "" ? 0 : 1
+  scope                = var.kv_id
+  role_definition_name = "Key Vault Crypto Service Encryption User"
+  principal_id         = var.storage_cmk_principal_id
+}
+
 #Storage RBAC
 resource "azurerm_role_assignment" "storage_backend_rw" {
   scope                = var.storage_id

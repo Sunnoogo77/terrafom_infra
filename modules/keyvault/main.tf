@@ -52,7 +52,7 @@ resource "azurerm_key_vault" "kv" {
   location            = var.location
   resource_group_name = var.resource_group_name
   tenant_id           = var.tenant_id
-  sku_name            = "standard"
+  sku_name            = "premium"
 
   # Sécurité forte
   soft_delete_retention_days  = 30
@@ -121,6 +121,26 @@ resource "azurerm_monitor_diagnostic_setting" "kv_diagnostics" {
   }
 }
 
+# CMK used for encryption at rest (e.g., Storage Account)
+resource "azurerm_key_vault_key" "storage_cmk" {
+  name         = "${var.project_name}-storage-cmk-${var.env}"
+  key_vault_id = azurerm_key_vault.kv.id
+
+  key_type = "RSA-HSM"
+  key_size = 2048
+
+  expiration_date = "2030-01-01T00:00:00Z"
+
+  key_opts = [
+    "decrypt",
+    "encrypt",
+    "sign",
+    "unwrapKey",
+    "verify",
+    "wrapKey",
+  ]
+}
+
 # ------------------------------
 # Outputs
 # ------------------------------
@@ -134,4 +154,9 @@ output "key_vault_name" {
 
 output "key_vault_uri" {
   value = azurerm_key_vault.kv.vault_uri
+}
+
+output "storage_cmk_key_id" {
+  description = "Key Vault key id to use as CMK for Storage encryption"
+  value       = azurerm_key_vault_key.storage_cmk.id
 }

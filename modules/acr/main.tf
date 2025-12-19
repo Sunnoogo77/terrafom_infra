@@ -47,7 +47,45 @@ variable "enable_private_endpoint" {
 variable "sku" {
   type        = string
   description = "ACR SKU (Basic, Standard, Premium)"
-  default     = "Basic"
+  default     = "Premium"
+}
+
+variable "public_network_access_enabled" {
+  type        = bool
+  description = "Whether public network access is enabled for ACR"
+  default     = false
+}
+
+variable "data_endpoint_enabled" {
+  type        = bool
+  description = "Enable dedicated data endpoints (Premium feature)"
+  default     = true
+}
+
+
+
+variable "quarantine_policy_enabled" {
+  type        = bool
+  description = "Enable image quarantine policy (Premium feature)"
+  default     = true
+}
+
+variable "trust_policy_enabled" {
+  type        = bool
+  description = "Enable content trust policy"
+  default     = true
+}
+
+variable "retention_policy_days" {
+  type        = number
+  description = "Retention (days) to cleanup untagged manifests"
+  default     = 7
+}
+
+variable "georeplication_locations" {
+  type        = list(string)
+  description = "Additional regions for geo-replication (Premium feature)"
+  default     = ["northeurope"]
 }
 
 variable "log_analytics_workspace_id" {
@@ -72,6 +110,27 @@ resource "azurerm_container_registry" "acr" {
   sku                 = var.sku
 
   admin_enabled = false
+
+  public_network_access_enabled = var.public_network_access_enabled
+
+  data_endpoint_enabled     = var.data_endpoint_enabled
+  zone_redundancy_enabled   = true
+  quarantine_policy_enabled = var.quarantine_policy_enabled
+
+  trust_policy_enabled     = var.trust_policy_enabled
+  retention_policy_in_days = var.retention_policy_days
+
+  network_rule_set {
+    default_action = "Deny"
+  }
+
+  dynamic "georeplications" {
+    for_each = toset(var.georeplication_locations)
+    content {
+      location                = georeplications.value
+      zone_redundancy_enabled = true
+    }
+  }
 
   tags = {
     Project = var.project_name

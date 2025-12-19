@@ -14,8 +14,8 @@ output "ai_app_fqdn" {
 }
 
 output "ai_app_url" {
-  description = "Public URL of the AI Container App (if ingress enabled)"
-  value       = try("https://${azurerm_container_app.ai.ingress[0].fqdn}", null)
+  description = "AI Container App ingress host (FQDN) if enabled"
+  value       = try(azurerm_container_app.ai.ingress[0].fqdn, null)
 }
 
 output "ai_identity_principal_id" {

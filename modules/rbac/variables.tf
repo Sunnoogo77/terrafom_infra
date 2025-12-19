@@ -12,6 +12,12 @@ variable "law_id" {
   default     = ""
 }
 
+variable "storage_cmk_principal_id" {
+  type        = string
+  description = "Principal ID of the Storage Account managed identity (for Key Vault CMK access)"
+  default     = ""
+}
+
 variable "groups" {
   type = object({
     infra     = string
