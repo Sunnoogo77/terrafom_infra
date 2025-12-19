@@ -1,7 +1,7 @@
 quiet: true
 compact: true
 framework: terraform
-terms: []
+
 
 # Exemple : si tu veux ignorer certains checks plus tard
 skip-check:
@@ -11,4 +11,4 @@ skip-check:
 # Scan both environment and modules.
 directory:
   - envs
-  - modules
+
