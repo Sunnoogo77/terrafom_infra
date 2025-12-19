@@ -80,13 +80,19 @@ jobs:
                 tflint --init
                 tflint --recursive
 
-          - name: Run Checkov (Terraform)
-            uses: bridgecrewio/checkov-action@master
+          - name: Setup Python
+            uses: actions/setup-python@v5
             with:
-                directory: .                
-                framework: terraform
-                quiet: true
-                config_file: policies/checkov/.checkov.yaml
+              python-version: "3.11"
+
+          - name: Install Checkov
+            run: |
+              python -m pip install --upgrade pip
+              python -m pip install "checkov>=3.2.496"
+
+          - name: Run Checkov (Terraform)
+            run: |
+              checkov --config-file policies/checkov/.checkov.yaml
 
     plan:
         name: "Terraform Plan (Dev)"
