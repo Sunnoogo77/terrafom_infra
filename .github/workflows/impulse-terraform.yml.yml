@@ -14,6 +14,15 @@ on:
           - "modules/**"
           - "policies/**"
     workflow_dispatch:
+        inputs:
+          action:
+            description: "Manual action"
+            required: true
+            default: "apply"
+            type: choice
+            options:
+              - apply
+              - destroy
 
 permissions:
   contents: read
@@ -52,13 +61,14 @@ jobs:
             working-directory: ${{ env.WORKING_DIR }}
             run: terraform validate
 
-          - name: Install tfsec
-            run: |
-              curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-
-          - name: Run tfsec (with config)
-            run: |
-              tfsec --config-file policies/tfsec/.tfsec.yaml .
+          - name: Run Trivy IaC scan (gating)
+            uses: aquasecurity/trivy-action@master
+            with:
+              scan-type: "config"
+              scan-ref: "."
+              format: "table"
+              severity: "MEDIUM,HIGH,CRITICAL"
+              exit-code: "1"
 
 
           - name: Setup TFLint
@@ -71,13 +81,19 @@ jobs:
                 tflint --init
                 tflint --recursive
 
-          - name: Run Checkov (Terraform)
-            uses: bridgecrewio/checkov-action@master
+          - name: Setup Python
+            uses: actions/setup-python@v5
             with:
-                directory: .                
-                framework: terraform
-                quiet: true
-                config_file: policies/checkov/.checkov.yaml
+              python-version: "3.11"
+
+          - name: Install Checkov
+            run: |
+              python -m pip install --upgrade pip
+              python -m pip install "checkov==3.2.495"
+
+          - name: Run Checkov (Terraform)
+            run: |
+              checkov --config-file policies/checkov/.checkov.yaml
 
     plan:
         name: "Terraform Plan (Dev)"
@@ -99,7 +115,7 @@ jobs:
             with:
                 terraform_version: ${{ env.TF_VERSION }}
 
-          - name: Azure Login (Service Principal)
+          - name: Azure Login
             uses: azure/login@v2
             with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -171,8 +187,8 @@ jobs:
       needs: [plan, security]
       runs-on: ubuntu-latest
 
-      # Sécurité : déclenchement MANUEL uniquement
-      if: github.event_name == 'workflow_dispatch'
+      # Sécurité : déclenchement MANUEL uniquement (action=apply)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
 
       # Protection via GitHub Environments (approbation possible)
       environment: dev
@@ -189,7 +205,7 @@ jobs:
           with:
             terraform_version: ${{ env.TF_VERSION }}
 
-        - name: Azure Login (Service Principal)
+        - name: Azure Login
           uses: azure/login@v2
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -209,37 +225,37 @@ jobs:
           run: terraform apply -auto-approve tfplan.binary
 
     destroy:
-          name: "Terraform Destroy (Manual)"
-          runs-on: ubuntu-latest
+      name: "Terraform Destroy (Manual)"
+      runs-on: ubuntu-latest
 
-          # Déclenchement manuel uniquement (action=destroy)
-          if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+      # Déclenchement manuel uniquement (action=destroy)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
 
-          environment: dev
+      environment: dev
 
-          env:
-            TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+      env:
+        TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
 
-          steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
 
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                terraform_version: ${{ env.TF_VERSION }}
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ env.TF_VERSION }}
 
-            - name: Azure Login
-              uses: azure/login@v2
-              with:
-                creds: ${{ secrets.AZURE_CREDENTIALS }}
+        - name: Azure Login
+          uses: azure/login@v2
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-            - name: Terraform init
-              working-directory: ${{ env.WORKING_DIR }}
-              run: terraform init -backend=false -input=false
+        - name: Terraform init
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform init -backend=false -input=false
 
-            - name: Terraform destroy
-              working-directory: ${{ env.WORKING_DIR }}
-              run: terraform destroy -auto-approve
+        - name: Terraform destroy
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform destroy -auto-approve
 
-              # hello
+          # hello
