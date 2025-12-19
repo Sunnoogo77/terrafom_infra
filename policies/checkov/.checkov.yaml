@@ -1,0 +1,14 @@
+quiet: true
+compact: true
+framework: terraform
+terms: []
+
+# Exemple : si tu veux ignorer certains checks plus tard
+skip-check:
+  # - CKV_AZURE_XXX   # (à remplir quand tu verras un faux positif)
+  # - CKV2_AZURE_YYY
+
+# Scan both environment and modules.
+directory:
+  - envs
+  - modules

@@ -1,0 +1,9 @@
+terms: []
+# tfsec config
+exclude:
+  # Exemple: ignore un faux positif quand tu l'auras identifié
+  # - AZU001
+
+severity_overrides:
+  # Exemple: abaisser certains checks à LOW si nécessaire
+  # AZU002: LOW
