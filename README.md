@@ -70,9 +70,15 @@
   - `validate` : `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, `tfsec`, `tflint`, `checkov`.
   - `plan` (non PR fork) : login Azure via `AZURE_CREDENTIALS` (JSON Service Principal), `terraform init -backend=false`, `terraform plan`, export JSON, artefact du plan.
   - `security` : Trivy IaC (SARIF), trufflehog.
-  - `apply` (workflow_dispatch, env dev) : télécharge l’artefact, init local backend, `terraform apply`.
-- Secrets/vars attendus : `AZURE_CREDENTIALS` (JSON Service Principal) et `TF_VAR_sql_admin_password`. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l’état actuel.
-- Génération `AZURE_CREDENTIALS` : créer un Service Principal avec un rôle adapté (RG) puis `az ad sp create-for-rbac --name "<name>" --role Contributor --scopes "/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth` et placer la sortie JSON dans le secret GitHub `AZURE_CREDENTIALS`.
+  - `apply` (workflow_dispatch, env dev) : télécharge l'artefact, init local backend, `terraform apply`.
+- Secrets/vars attendus : `AZURE_CREDENTIALS` (JSON Service Principal) et `TF_VAR_sql_admin_password`. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l'état actuel.
+- Génération `AZURE_CREDENTIALS` : créer un Service Principal avec un rôle adapté (RG) puis `az ad sp create-for-rbac --name "<name>" --role Contributor --scopes "/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth` et placer la sortie JSON dans le secret GitHub `AZURE_CREDENTIALS`. Les champs `clientId`, `clientSecret`, `subscriptionId`, `tenantId` doivent provenir du même tenant et de la même souscription (ne pas mélanger app/tenant et subscription).
+
+## Secrets GitHub requis
+- `AZURE_CREDENTIALS` : JSON Service Principal Azure contenant `clientId`, `clientSecret`, `subscriptionId`, `tenantId`.
+- `TF_VAR_sql_admin_password` : mot de passe admin SQL (Terraform var), requis pour `plan/apply`.
+
+Note CRITIQUE : les 4 valeurs du JSON (`clientId`, `clientSecret`, `subscriptionId`, `tenantId`) doivent venir du même tenant et de la même souscription (ne pas mélanger une app registration d’un tenant avec une subscription d’un autre tenant).
 
 ## 9. Limites actuelles & évolutions prévues
 - Pas de Front Door/WAF, backend ACA exposé publiquement en dev.

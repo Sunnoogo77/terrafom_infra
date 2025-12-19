@@ -1,0 +1,209 @@
+# name: "Impulse - Terraform Infra & IAM"
+
+# on:
+#     push:
+#         branches: ["dev"]
+#         paths:
+#           - "envs/**"
+#           - "modules/**"
+#           - "policies/**"
+#     pull_request:
+#         branches: ["dev"]
+#         paths:
+#           - "envs/**"
+#           - "modules/**"
+#           - "policies/**"
+#     workflow_dispatch:
+
+# permissions:
+#   contents: read
+#   actions: read
+
+# env:
+#   TF_VERSION: "1.8.5"
+#   WORKING_DIR: "envs/dev"
+
+# jobs:
+#     validate:
+#         name: "Validation & Lint"
+#         runs-on: ubuntu-latest
+
+#         env:
+#           # terraform validate needs a value, but we avoid injecting real secrets on PRs.
+#           TF_VAR_sql_admin_password: "dummy-for-validate"
+
+#         steps:
+#           - name: Checkout code
+#             uses: actions/checkout@v4
+
+#           - name: Setup Terraform
+#             uses: hashicorp/setup-terraform@v3
+#             with:
+#               terraform_version: ${{ env.TF_VERSION }}
+
+#           - name: Terraform fmt
+#             run: terraform fmt -check -recursive
+
+#           - name: Terraform init (backend local)
+#             working-directory: ${{ env.WORKING_DIR }}
+#             run: terraform init -backend=false -input=false
+
+#           - name: Terraform validate
+#             working-directory: ${{ env.WORKING_DIR }}
+#             run: terraform validate
+
+#           - name: Install tfsec
+#             run: |
+#               curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+
+#           - name: Run tfsec (with config)
+#             run: |
+#               tfsec --config-file policies/tfsec/.tfsec.yaml .
+
+
+#           - name: Setup TFLint
+#             uses: terraform-linters/setup-tflint@v4
+#             with:
+#                 tflint_version: latest
+
+#           - name: Run TFLint
+#             run: |
+#                 tflint --init
+#                 tflint --recursive
+
+#           - name: Run Checkov (Terraform)
+#             uses: bridgecrewio/checkov-action@master
+#             with:
+#                 directory: .                
+#                 framework: terraform
+#                 quiet: true
+#                 config_file: policies/checkov/.checkov.yaml
+
+#     plan:
+#         name: "Terraform Plan (Dev)"
+#         needs: validate
+#         runs-on: ubuntu-latest
+
+#         # Avoid failures/leaks on forked PRs (secrets are not provided).
+#         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+#         env:
+#           TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+
+#         steps:
+#           - name: Checkout
+#             uses: actions/checkout@v4
+
+#           - name: Setup Terraform
+#             uses: hashicorp/setup-terraform@v3
+#             with:
+#                 terraform_version: ${{ env.TF_VERSION }}
+
+#           - name: Azure Login (Service Principal)
+#             uses: azure/login@v2
+#             with:
+#                 creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+#           - name: Terraform init (no backend for CI)
+#             working-directory: ${{ env.WORKING_DIR }}
+#             run: terraform init -backend=false -input=false
+
+
+#           - name: Terraform plan
+#             working-directory: ${{ env.WORKING_DIR }}
+#             run: terraform plan -out=tfplan.binary
+
+#           - name: Export plan to JSON
+#             working-directory: ${{ env.WORKING_DIR }}
+#             run: terraform show -json tfplan.binary > tfplan.json
+
+
+#           - name: Upload plan artifact
+#             uses: actions/upload-artifact@v4
+#             with:
+#                 name: tfplan-dev
+#                 path: ${{ env.WORKING_DIR }}/tfplan.binary
+
+#     security:
+#         name: "Security Scans (Extra)"
+#         needs: validate
+#         runs-on: ubuntu-latest
+
+#         permissions:
+#           contents: read
+#           actions: read
+#           security-events: write
+
+#         steps:
+#           - name: Checkout
+#             uses: actions/checkout@v4
+
+#         # Trivy en mode IaC (optionnel, redondant avec Checkov mais possible)
+#           - name: Run Trivy IaC scan
+#             uses: aquasecurity/trivy-action@master
+#             with:
+#                 scan-type: "config"
+#                 scan-ref: "."
+#                 format: "sarif"
+#                 output: "trivy-results.sarif"
+
+#           - name: Upload Trivy SARIF
+#             if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+#             uses: github/codeql-action/upload-sarif@v4
+#             with:
+#                 sarif_file: "trivy-results.sarif"
+
+#         # Scan de secrets dans le repo
+#           - name: Trufflehog Secret Scan
+#             uses: trufflesecurity/trufflehog@main
+#             with:
+#                 path: .
+#                 extra_args: --only-verified
+
+#         # Placeholder pour tes scripts maison plus tard
+#         # - name: Azure Security Benchmarks
+#         #   run: |
+#         #     python scripts/security/azure_benchmark_check.py
+
+# # Apply only on manual trigger
+#     apply:
+#       name: "Terraform Apply (Manual)"
+#       needs: [plan, security]
+#       runs-on: ubuntu-latest
+
+#       # Sécurité : déclenchement MANUEL uniquement
+#       if: github.event_name == 'workflow_dispatch'
+
+#       # Protection via GitHub Environments (approbation possible)
+#       environment: dev
+
+#       env:
+#         TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+
+#       steps:
+#         - name: Checkout repository
+#           uses: actions/checkout@v4
+
+#         - name: Setup Terraform
+#           uses: hashicorp/setup-terraform@v3
+#           with:
+#             terraform_version: ${{ env.TF_VERSION }}
+
+#         - name: Azure Login (Service Principal)
+#           uses: azure/login@v2
+#           with:
+#             creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+#         - name: Download Terraform plan
+#           uses: actions/download-artifact@v4
+#           with:
+#             name: tfplan-dev
+#             path: ${{ env.WORKING_DIR }}
+
+#         - name: Terraform init
+#           working-directory: ${{ env.WORKING_DIR }}
+#           run: terraform init -backend=false -input=false
+
+#         - name: Terraform apply (approved plan)
+#           working-directory: ${{ env.WORKING_DIR }}
+#           run: terraform apply -auto-approve tfplan.binary
