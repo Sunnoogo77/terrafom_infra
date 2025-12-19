@@ -120,7 +120,7 @@ resource "azurerm_storage_account" "sa" {
   }
 
   customer_managed_key {
-    key_vault_key_id = var.cmk_key_id
+    key_vault_key_id          = var.cmk_key_id
     user_assigned_identity_id = azurerm_user_assigned_identity.storage.id
   }
 
