@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   TF_VERSION: "1.8.5"
@@ -88,7 +89,7 @@ jobs:
           - name: Install Checkov
             run: |
               python -m pip install --upgrade pip
-              python -m pip install "checkov>=3.2.495"
+              python -m pip install "checkov==3.2.495"
 
           - name: Run Checkov (Terraform)
             run: |
@@ -114,13 +115,10 @@ jobs:
             with:
                 terraform_version: ${{ env.TF_VERSION }}
 
-          - name: Azure Login (Service Principal)
+          - name: Azure Login
             uses: azure/login@v2
             with:
-                tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-                client-id: ${{ secrets.AZURE_CLIENT_ID }}
-                client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-                subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+                creds: ${{ secrets.AZURE_CREDENTIALS }}
 
           - name: Terraform init (no backend for CI)
             working-directory: ${{ env.WORKING_DIR }}
@@ -149,6 +147,7 @@ jobs:
 
         permissions:
           contents: read
+          actions: read
           security-events: write
 
         steps:
@@ -165,7 +164,8 @@ jobs:
                 output: "trivy-results.sarif"
 
           - name: Upload Trivy SARIF
-            uses: github/codeql-action/upload-sarif@v3
+            if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+            uses: github/codeql-action/upload-sarif@v4
             with:
                 sarif_file: "trivy-results.sarif"
 
@@ -205,13 +205,10 @@ jobs:
           with:
             terraform_version: ${{ env.TF_VERSION }}
 
-        - name: Azure Login (Service Principal)
+        - name: Azure Login
           uses: azure/login@v2
           with:
-            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-            client-id: ${{ secrets.AZURE_CLIENT_ID }}
-            client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
 
         - name: Download Terraform plan
           uses: actions/download-artifact@v4
@@ -248,13 +245,10 @@ jobs:
           with:
             terraform_version: ${{ env.TF_VERSION }}
 
-        - name: Azure Login (Service Principal)
+        - name: Azure Login
           uses: azure/login@v2
           with:
-            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-            client-id: ${{ secrets.AZURE_CLIENT_ID }}
-            client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
 
         - name: Terraform init
           working-directory: ${{ env.WORKING_DIR }}
@@ -263,3 +257,5 @@ jobs:
         - name: Terraform destroy
           working-directory: ${{ env.WORKING_DIR }}
           run: terraform destroy -auto-approve
+
+          #hello

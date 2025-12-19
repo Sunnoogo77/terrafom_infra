@@ -68,10 +68,11 @@
 - Workflow unique : `.github/workflows/impulse-terraform.yml.yml`.
 - Jobs :
   - `validate` : `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, `tfsec`, `tflint`, `checkov`.
-  - `plan` (non PR fork) : login Azure (secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SUBSCRIPTION_ID`), `terraform init -backend=false`, `terraform plan`, export JSON, artefact du plan.
+  - `plan` (non PR fork) : login Azure via `AZURE_CREDENTIALS` (JSON Service Principal), `terraform init -backend=false`, `terraform plan`, export JSON, artefact du plan.
   - `security` : Trivy IaC (SARIF), trufflehog.
   - `apply` (workflow_dispatch, env dev) : télécharge l’artefact, init local backend, `terraform apply`.
-- Secrets/vars attendus : `TF_VAR_sql_admin_password`, secrets Azure AD/Subscription ci-dessus. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l’état actuel.
+- Secrets/vars attendus : `AZURE_CREDENTIALS` (JSON Service Principal) et `TF_VAR_sql_admin_password`. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l’état actuel.
+- Génération `AZURE_CREDENTIALS` : créer un Service Principal avec un rôle adapté (RG) puis `az ad sp create-for-rbac --name "<name>" --role Contributor --scopes "/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth` et placer la sortie JSON dans le secret GitHub `AZURE_CREDENTIALS`.
 
 ## 9. Limites actuelles & évolutions prévues
 - Pas de Front Door/WAF, backend ACA exposé publiquement en dev.
@@ -90,4 +91,3 @@
 - `.github/workflows/` : pipelines CI/CD Terraform et scans sécurité.
 - `policies/` : configurations tfsec et checkov.
 - `diagrammes/` : diagrammes existants (référence visuelle, non générateurs de code).
-
