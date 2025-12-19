@@ -1,3 +1,13 @@
+terraform {
+  required_version = ">= 1.8.5"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
 variable "env" {
   type = string
 }
@@ -31,7 +41,10 @@ variable "log_analytics_workspace_id" {
 }
 
 locals {
-  storage_account_name = lower(replace("${var.project_name}stor${var.env}", "/[^a-z0-9]/", ""))
+  storage_account_name             = lower(replace("${var.project_name}stor${var.env}", "/[^a-z0-9]/", ""))
+  storage_sku_parts                = split("_", var.storage_sku_name)
+  storage_account_tier             = try(local.storage_sku_parts[0], "Standard")
+  storage_account_replication_type = try(local.storage_sku_parts[1], "LRS")
 }
 
 # ------------------------------
@@ -41,8 +54,8 @@ resource "azurerm_storage_account" "sa" {
   name                     = local.storage_account_name
   resource_group_name      = var.resource_group_name
   location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+  account_tier             = local.storage_account_tier
+  account_replication_type = local.storage_account_replication_type
 
   account_kind = "StorageV2"
 

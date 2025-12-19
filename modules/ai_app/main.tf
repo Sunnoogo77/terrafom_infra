@@ -3,6 +3,16 @@
 # Rôle : App Impulse (AI) dans ACA env existant
 ############################################
 
+terraform {
+  required_version = ">= 1.8.5"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
 variable "env" {
   type        = string
   description = "Environment name (dev, preprod, prod)"

@@ -14,6 +14,15 @@ on:
           - "modules/**"
           - "policies/**"
     workflow_dispatch:
+        inputs:
+          action:
+            description: "Manual action"
+            required: true
+            default: "apply"
+            type: choice
+            options:
+              - apply
+              - destroy
 
 permissions:
   contents: read
@@ -172,8 +181,8 @@ jobs:
       needs: [plan, security]
       runs-on: ubuntu-latest
 
-      # Sécurité : déclenchement MANUEL uniquement
-      if: github.event_name == 'workflow_dispatch'
+      # Sécurité : déclenchement MANUEL uniquement (action=apply)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
 
       # Protection via GitHub Environments (approbation possible)
       environment: dev
@@ -211,3 +220,40 @@ jobs:
         - name: Terraform apply (approved plan)
           working-directory: ${{ env.WORKING_DIR }}
           run: terraform apply -auto-approve tfplan.binary
+
+    destroy:
+      name: "Terraform Destroy (Manual)"
+      runs-on: ubuntu-latest
+
+      # Déclenchement manuel uniquement (action=destroy)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+
+      environment: dev
+
+      env:
+        TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ env.TF_VERSION }}
+
+        - name: Azure Login (Service Principal)
+          uses: azure/login@v2
+          with:
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+        - name: Terraform init
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform init -backend=false -input=false
+
+        - name: Terraform destroy
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform destroy -auto-approve

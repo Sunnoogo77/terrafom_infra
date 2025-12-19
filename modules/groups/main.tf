@@ -1,3 +1,13 @@
+terraform {
+  required_version = ">= 1.8.5"
+  required_providers {
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.53"
+    }
+  }
+}
+
 variable "project_name" {
   description = "Project name used as prefix for groups"
   type        = string

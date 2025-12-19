@@ -3,6 +3,16 @@
 # Rôle : ACA Environment + App Impulse (backend)
 ############################################
 
+terraform {
+  required_version = ">= 1.8.5"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
 variable "env" {
   type        = string
   description = "Environment name (dev, preprod, prod)"
