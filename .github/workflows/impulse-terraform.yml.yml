@@ -228,7 +228,7 @@ name: "Impulse - Terraform Infra & IAM"
 
 on:
     push:
-        branches: ["dev"]
+        branches: ["main"]
         paths:
           - "envs/**"
           - "modules/**"
