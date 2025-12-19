@@ -8,7 +8,7 @@ on:
           - "modules/**"
           - "policies/**"
     pull_request:
-        branches: ["dev"]
+        branches: ["main"]
         paths:
           - "envs/**"
           - "modules/**"
@@ -225,6 +225,7 @@ jobs:
           run: terraform apply -auto-approve tfplan.binary
 
     destroy:
+
       name: "Terraform Destroy (Manual)"
       runs-on: ubuntu-latest
 
@@ -258,4 +259,4 @@ jobs:
           working-directory: ${{ env.WORKING_DIR }}
           run: terraform destroy -auto-approve
 
-          # hello
+          #here we are !!! 
