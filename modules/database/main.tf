@@ -70,13 +70,12 @@ resource "azurerm_mssql_server" "sql_server" {
   }
 }
 
-# Audit étendu vers Log Analytics si un workspace est fourni
+# Audit étendu (recommandé). Si un Log Analytics Workspace est configuré via
+# les diagnostic settings ci-dessous, les events d'audit y seront envoyés.
 resource "azurerm_mssql_server_extended_auditing_policy" "sql_audit" {
-  count = var.log_analytics_workspace_id == "" ? 0 : 1
-
   server_id              = azurerm_mssql_server.sql_server.id
   log_monitoring_enabled = true
-  retention_in_days      = 30
+  retention_in_days      = 90
 }
 
 # ------------------------------
