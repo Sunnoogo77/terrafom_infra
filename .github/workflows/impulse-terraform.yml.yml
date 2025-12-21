@@ -188,17 +188,29 @@ jobs:
               GH_TOKEN: ${{ github.token }}
             run: |
               set -euo pipefail
-              STATUS="$(curl -fsSL \
+              API_JSON="$(curl -fsSL \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
                 -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}" \
-                | jq -r '.security_and_analysis.code_scanning.status // "unknown"')"
-              if [ "${STATUS}" = "enabled" ]; then
-                echo "enabled=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "enabled=false" >> "$GITHUB_OUTPUT"
-                echo "Code scanning not enabled (status=${STATUS}); skipping SARIF upload."
-              fi
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}")"
+              STATUS="$(python - <<'PY'
+              import json
+              import sys
+
+              data = json.loads(sys.stdin.read())
+              status = (
+                  data.get('security_and_analysis', {})
+                      .get('code_scanning', {})
+                      .get('status', 'unknown')
+              )
+              print(status)
+              PY
+              <<<"${API_JSON}")"
+                            if [ "${STATUS}" = "enabled" ]; then
+                              echo "enabled=true" >> "$GITHUB_OUTPUT"
+                            else
+                              echo "enabled=false" >> "$GITHUB_OUTPUT"
+                              echo "Code scanning not enabled (status=${STATUS}); skipping SARIF upload."
+                            fi
 
           - name: Upload Trivy SARIF
             if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && steps.code_scanning.outputs.enabled == 'true'
