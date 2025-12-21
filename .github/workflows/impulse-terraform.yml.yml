@@ -192,46 +192,33 @@ jobs:
                 -H "Authorization: Bearer ${GH_TOKEN}" \
                 -H "Accept: application/vnd.github+json" \
                 "https://api.github.com/repos/${GITHUB_REPOSITORY}")"
-              STATUS="$(python - <<'PY'
-              import json
-              import sys
-
-              data = json.loads(sys.stdin.read())
-              status = (
-                  data.get('security_and_analysis', {})
-                      .get('code_scanning', {})
-                      .get('status', 'unknown')
-              )
+              STATUS="$(python - <<'PY' <<<"${API_JSON}"
+              import json,sys
+              data=json.loads(sys.stdin.read())
+              status=data.get('security_and_analysis',{}).get('code_scanning',{}).get('status','unknown')
               print(status)
               PY
-              <<<"${API_JSON}")"
-                            if [ "${STATUS}" = "enabled" ]; then
-                              echo "enabled=true" >> "$GITHUB_OUTPUT"
-                            else
-                              echo "enabled=false" >> "$GITHUB_OUTPUT"
-                              echo "Code scanning not enabled (status=${STATUS}); skipping SARIF upload."
-                            fi
+              )"
+                        if [ "${STATUS}" = "enabled" ]; then
+                          echo "enabled=true" >> "$GITHUB_OUTPUT"
+                        else
+                          echo "enabled=false" >> "$GITHUB_OUTPUT"
+                          echo "Code scanning not enabled (status=${STATUS}); skipping SARIF upload."
+                        fi
 
           - name: Upload Trivy SARIF
             if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && steps.code_scanning.outputs.enabled == 'true'
             uses: github/codeql-action/upload-sarif@v4
             continue-on-error: true
             with:
-                sarif_file: "trivy-results.sarif"
+              sarif_file: "trivy-results.sarif"
 
-        # Scan de secrets dans le repo
           - name: Trufflehog Secret Scan
             uses: trufflesecurity/trufflehog@main
             with:
-                path: .
-                extra_args: --only-verified
+              path: .
+              extra_args: --only-verified
 
-        # Placeholder pour tes scripts maison plus tard
-        # - name: Azure Security Benchmarks
-        #   run: |
-        #     python scripts/security/azure_benchmark_check.py
-
-# Apply only on manual trigger
     apply:
       name: "Terraform Apply (Manual)"
       needs: [plan, security]
@@ -251,45 +238,45 @@ jobs:
         ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
 
       steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+          - name: Checkout repository
+            uses: actions/checkout@v4
 
-        - name: Setup Terraform
-          uses: hashicorp/setup-terraform@v3
-          with:
-            terraform_version: ${{ env.TF_VERSION }}
+          - name: Setup Terraform
+            uses: hashicorp/setup-terraform@v3
+            with:
+              terraform_version: ${{ env.TF_VERSION }}
 
-        - name: Azure Login
-          uses: azure/login@v2
-          with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
-            allow-no-subscriptions: true
+          - name: Azure Login
+            uses: azure/login@v2
+            with:
+              creds: ${{ secrets.AZURE_CREDENTIALS }}
+              allow-no-subscriptions: true
 
-        - name: Verify Azure subscription access
-          shell: bash
-          run: |
-            set -euo pipefail
-            SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
-            if [ "${SUBS_COUNT}" = "0" ]; then
-              echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
-              echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
-              exit 1
-            fi
-            az account set --subscription "${ARM_SUBSCRIPTION_ID}"
+          - name: Verify Azure subscription access
+            shell: bash
+            run: |
+              set -euo pipefail
+              SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
+              if [ "${SUBS_COUNT}" = "0" ]; then
+                echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
+                echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+                exit 1
+              fi
+              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
-        - name: Download Terraform plan
-          uses: actions/download-artifact@v4
-          with:
-            name: tfplan-dev
-            path: ${{ env.WORKING_DIR }}
+          - name: Download Terraform plan
+            uses: actions/download-artifact@v4
+            with:
+              name: tfplan-dev
+              path: ${{ env.WORKING_DIR }}
 
-        - name: Terraform init
-          working-directory: ${{ env.WORKING_DIR }}
-          run: terraform init -backend=false -input=false
+          - name: Terraform init
+            working-directory: ${{ env.WORKING_DIR }}
+            run: terraform init -backend=false -input=false
 
-        - name: Terraform apply (approved plan)
-          working-directory: ${{ env.WORKING_DIR }}
-          run: terraform apply -auto-approve tfplan.binary
+          - name: Terraform apply (approved plan)
+            working-directory: ${{ env.WORKING_DIR }}
+            run: terraform apply -auto-approve tfplan.binary
 
     destroy:
 
