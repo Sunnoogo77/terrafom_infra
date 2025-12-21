@@ -259,4 +259,3 @@ jobs:
           working-directory: ${{ env.WORKING_DIR }}
           run: terraform destroy -auto-approve
 
-          #here we are !!! 
