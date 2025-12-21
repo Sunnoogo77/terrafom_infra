@@ -105,6 +105,10 @@ jobs:
 
         env:
           TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
 
         steps:
           - name: Checkout
@@ -119,6 +123,19 @@ jobs:
             uses: azure/login@v2
             with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
+                allow-no-subscriptions: true
+
+          - name: Verify Azure subscription access
+            shell: bash
+            run: |
+              set -euo pipefail
+              SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
+              if [ "${SUBS_COUNT}" = "0" ]; then
+                echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
+                echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+                exit 1
+              fi
+              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
           - name: Terraform init (no backend for CI)
             working-directory: ${{ env.WORKING_DIR }}
@@ -166,6 +183,7 @@ jobs:
           - name: Upload Trivy SARIF
             if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
             uses: github/codeql-action/upload-sarif@v4
+            continue-on-error: true
             with:
                 sarif_file: "trivy-results.sarif"
 
@@ -195,6 +213,10 @@ jobs:
 
       env:
         TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
 
       steps:
         - name: Checkout repository
@@ -209,6 +231,19 @@ jobs:
           uses: azure/login@v2
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
+            allow-no-subscriptions: true
+
+        - name: Verify Azure subscription access
+          shell: bash
+          run: |
+            set -euo pipefail
+            SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
+            if [ "${SUBS_COUNT}" = "0" ]; then
+              echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
+              echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+              exit 1
+            fi
+            az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
         - name: Download Terraform plan
           uses: actions/download-artifact@v4
@@ -236,6 +271,10 @@ jobs:
 
       env:
         TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+        ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+        ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
 
       steps:
         - name: Checkout repository
@@ -250,6 +289,19 @@ jobs:
           uses: azure/login@v2
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
+            allow-no-subscriptions: true
+
+        - name: Verify Azure subscription access
+          shell: bash
+          run: |
+            set -euo pipefail
+            SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
+            if [ "${SUBS_COUNT}" = "0" ]; then
+              echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
+              echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+              exit 1
+            fi
+            az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
         - name: Terraform init
           working-directory: ${{ env.WORKING_DIR }}
