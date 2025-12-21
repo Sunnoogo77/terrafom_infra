@@ -180,8 +180,28 @@ jobs:
                 format: "sarif"
                 output: "trivy-results.sarif"
 
-          - name: Upload Trivy SARIF
+          - name: Detect Code Scanning availability
+            id: code_scanning
             if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+            shell: bash
+            env:
+              GH_TOKEN: ${{ github.token }}
+            run: |
+              set -euo pipefail
+              STATUS="$(curl -fsSL \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}" \
+                | jq -r '.security_and_analysis.code_scanning.status // "unknown"')"
+              if [ "${STATUS}" = "enabled" ]; then
+                echo "enabled=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "enabled=false" >> "$GITHUB_OUTPUT"
+                echo "Code scanning not enabled (status=${STATUS}); skipping SARIF upload."
+              fi
+
+          - name: Upload Trivy SARIF
+            if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && steps.code_scanning.outputs.enabled == 'true'
             uses: github/codeql-action/upload-sarif@v4
             continue-on-error: true
             with:
