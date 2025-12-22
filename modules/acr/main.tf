@@ -94,6 +94,17 @@ variable "log_analytics_workspace_id" {
   description = "Log Analytics workspace ID (optional for diagnostics)"
 }
 
+variable "enable_diagnostics" {
+  type        = bool
+  description = "Enable diagnostics to Log Analytics"
+  default     = false
+
+  validation {
+    condition     = var.enable_diagnostics == false || var.log_analytics_workspace_id != ""
+    error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
+  }
+}
+  
 locals {
   # ACR name : 5-50 chars, lowercase alphanum only
   raw_name = "${var.project_name}acr${var.env}"
@@ -169,7 +180,7 @@ resource "azurerm_private_endpoint" "acr_pe" {
 # Diagnostics vers Log Analytics (optionnel)
 # ------------------------------
 resource "azurerm_monitor_diagnostic_setting" "acr_diagnostics" {
-  count                      = var.log_analytics_workspace_id == "" ? 0 : 1
+  count                      = var.enable_diagnostics ? 1 : 0
   name                       = "${local.acr_name}-diag"
   target_resource_id         = azurerm_container_registry.acr.id
   log_analytics_workspace_id = var.log_analytics_workspace_id

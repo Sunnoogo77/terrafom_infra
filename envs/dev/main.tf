@@ -28,6 +28,7 @@ module "database" {
   azuread_admin_object_id      = module.groups.object_ids.devsecops
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  enable_diagnostics         = true
 }
 
 
@@ -44,6 +45,7 @@ module "storage" {
   cmk_key_id = module.keyvault.storage_cmk_key_id
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  enable_diagnostics         = true
 }
 
 
@@ -58,6 +60,7 @@ module "keyvault" {
   subnet_endpoints_id = module.network.subnet_endpoints_id
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  enable_diagnostics         = true
 }
 
 module "acr" {
@@ -75,6 +78,7 @@ module "acr" {
   georeplication_locations = ["northeurope"]
 
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  enable_diagnostics         = true
 }
 
 
@@ -152,6 +156,7 @@ module "monitoring" {
 module "rbac" {
   source = "../../modules/rbac"
 
+  resource_group_id   = module.network.resource_group_id
   resource_group_name = module.network.resource_group_name
 
   backend_mi_id = module.backend_app.backend_identity_principal_id

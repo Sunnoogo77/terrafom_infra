@@ -40,6 +40,18 @@ variable "log_analytics_workspace_id" {
   description = "Log Analytics workspace ID (optional for diagnostics)"
 }
 
+variable "enable_diagnostics" {
+  type        = bool
+  description = "Enable diagnostics to Log Analytics"
+  default     = false
+
+
+  validation {
+    condition     = var.enable_diagnostics == false || var.log_analytics_workspace_id != ""
+    error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
+  }
+}
+
 locals {
   key_vault_name = lower(replace("${var.project_name}-kv-${var.env}", "/[^a-z0-9-]/", ""))
 }
@@ -106,7 +118,7 @@ resource "azurerm_private_endpoint" "kv_pe" {
 # (Optionnel) Diagnostics vers Log Analytics
 # ------------------------------
 resource "azurerm_monitor_diagnostic_setting" "kv_diagnostics" {
-  count                      = var.log_analytics_workspace_id == "" ? 0 : 1
+  count                      = var.enable_diagnostics ? 1 : 0
   name                       = "${local.key_vault_name}-diag"
   target_resource_id         = azurerm_key_vault.kv.id
   log_analytics_workspace_id = var.log_analytics_workspace_id

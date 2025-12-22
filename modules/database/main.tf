@@ -67,6 +67,17 @@ variable "log_analytics_workspace_id" {
   description = "Log Analytics workspace ID (optional for diagnostics)"
 }
 
+variable "enable_diagnostics" {
+  type        = bool
+  description = "Enable diagnostics/auditing to Log Analytics"
+  default     = false
+
+
+  validation {
+    condition     = var.enable_diagnostics == false || var.log_analytics_workspace_id != ""
+    error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
+  }
+}
 locals {
   sql_server_name = "${var.project_name}-sql-${var.env}"
   sql_db_name     = "${var.project_name}-db-${var.env}"
@@ -106,7 +117,8 @@ resource "azurerm_mssql_server" "sql_server" {
 # Audit étendu (recommandé). Si un Log Analytics Workspace est configuré via
 # les diagnostic settings ci-dessous, les events d'audit y seront envoyés.
 resource "azurerm_mssql_server_extended_auditing_policy" "sql_audit" {
-  server_id              = azurerm_mssql_server.sql_server.id
+  count                 = var.enable_diagnostics ? 1 : 0
+  server_id             = azurerm_mssql_server.sql_server.id
   log_monitoring_enabled = true
   retention_in_days      = 90
 }
@@ -160,7 +172,7 @@ resource "azurerm_private_endpoint" "sql_pe" {
 # (Optionnel) Diagnostic Settings vers Log Analytics
 # ------------------------------
 resource "azurerm_monitor_diagnostic_setting" "sql_diagnostics" {
-  count                      = var.log_analytics_workspace_id == "" ? 0 : 1
+  count                      = var.enable_diagnostics ? 1 : 0
   name                       = "${local.sql_server_name}-diag"
   target_resource_id         = azurerm_mssql_server.sql_server.id
   log_analytics_workspace_id = var.log_analytics_workspace_id

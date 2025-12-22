@@ -1,4 +1,9 @@
-variable "resource_group_name" { type = string }
+variable "resource_group_id" { type = string }
+variable "resource_group_name" {
+  type        = string
+  default     = ""
+  description = "Optional RG name (kept for compatibility)"
+}
 variable "backend_mi_id" { type = string }
 variable "ai_mi_id" { type = string }
 

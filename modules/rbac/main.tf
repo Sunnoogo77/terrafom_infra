@@ -9,49 +9,44 @@ terraform {
   }
 }
 
-
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
-}
-
 resource "azurerm_role_assignment" "rg_infra_owner" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Owner"
   principal_id         = var.groups.infra
 }
 
 resource "azurerm_role_assignment" "rg_devsecops_contrib" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Contributor"
   principal_id         = var.groups.devsecops
 }
 
 resource "azurerm_role_assignment" "rg_dev_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.dev
 }
 
 resource "azurerm_role_assignment" "rg_ia_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.ia
 }
 
 resource "azurerm_role_assignment" "rg_data_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.data
 }
 
 resource "azurerm_role_assignment" "rg_security_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Security Reader"
   principal_id         = var.groups.security
 }
 
 resource "azurerm_role_assignment" "rg_soc_security_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Security Reader"
   principal_id         = var.groups.soc
 }
