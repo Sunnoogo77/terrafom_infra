@@ -124,19 +124,41 @@ jobs:
             uses: azure/login@v2
             with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
-                allow-no-subscriptions: true
 
-          - name: Verify Azure subscription access
+          - name: Préflight Azure credentials / subscription
             shell: bash
+            env:
+              AZ_CREDS: ${{ secrets.AZURE_CREDENTIALS }}
             run: |
               set -euo pipefail
-              SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
-              if [ "${SUBS_COUNT}" = "0" ]; then
-                echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
-                echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+              if [ -z "${AZ_CREDS:-}" ]; then
+                echo "::error::AZURE_CREDENTIALS is not set"; exit 1
+              fi
+              python - <<'PY'
+import json, os, sys
+raw=os.environ["AZ_CREDS"]
+try:
+    data=json.loads(raw)
+except Exception as e:
+    sys.exit(f"AZURE_CREDENTIALS is not valid JSON: {e}")
+required=["clientId","clientSecret","subscriptionId","tenantId"]
+missing=[k for k in required if not data.get(k)]
+if missing:
+    sys.exit("AZURE_CREDENTIALS missing keys: " + ",".join(missing))
+print(f"AZURE_CREDENTIALS tenantId={data['tenantId']} subscriptionId={data['subscriptionId']}")
+PY
+              az account show --query "{id:id, tenantId:tenantId, name:name}" -o json
+              az account list --output table || true
+              LOGIN_SUB=$(az account show --query id -o tsv || true)
+              LOGIN_TENANT=$(az account show --query tenantId -o tsv || true)
+              if [ -z "${LOGIN_SUB}" ] || [ -z "${LOGIN_TENANT}" ]; then
+                echo "::error::Azure CLI context is empty after login"; exit 1
+              fi
+              if [ "${LOGIN_SUB}" != "${ARM_SUBSCRIPTION_ID}" ] || [ "${LOGIN_TENANT}" != "${ARM_TENANT_ID}" ]; then
+                echo "::error::Mismatch between AZURE_CREDENTIALS (tenant/sub) and current az context"
+                echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
                 exit 1
               fi
-              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
           - name: Terraform init (no backend for CI)
             working-directory: ${{ env.WORKING_DIR }}
@@ -231,19 +253,23 @@ jobs:
             uses: azure/login@v2
             with:
               creds: ${{ secrets.AZURE_CREDENTIALS }}
-              allow-no-subscriptions: true
 
           - name: Verify Azure subscription access
             shell: bash
             run: |
               set -euo pipefail
-              SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
-              if [ "${SUBS_COUNT}" = "0" ]; then
-                echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
-                echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+              az account show --query "{id:id, tenantId:tenantId, name:name}" -o json
+              az account list --output table || true
+              LOGIN_SUB=$(az account show --query id -o tsv || true)
+              LOGIN_TENANT=$(az account show --query tenantId -o tsv || true)
+              if [ -z "${LOGIN_SUB}" ] || [ -z "${LOGIN_TENANT}" ]; then
+                echo "::error::Azure CLI context is empty after login"; exit 1
+              fi
+              if [ "${LOGIN_SUB}" != "${ARM_SUBSCRIPTION_ID}" ] || [ "${LOGIN_TENANT}" != "${ARM_TENANT_ID}" ]; then
+                echo "::error::Mismatch between AZURE_CREDENTIALS (tenant/sub) and current az context"
+                echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
                 exit 1
               fi
-              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
           - name: Download Terraform plan
             uses: actions/download-artifact@v4
@@ -289,19 +315,23 @@ jobs:
           uses: azure/login@v2
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
-            allow-no-subscriptions: true
 
         - name: Verify Azure subscription access
           shell: bash
           run: |
             set -euo pipefail
-            SUBS_COUNT="$(az account list --query "length(@)" -o tsv 2>/dev/null || echo 0)"
-            if [ "${SUBS_COUNT}" = "0" ]; then
-              echo "::error::Azure login succeeded but the Service Principal has access to 0 subscriptions."
-              echo "::error::Fix: assign the Service Principal a role on the target subscription (or at least the target resource group) and ensure AZURE_CREDENTIALS contains the correct subscriptionId."
+            az account show --query "{id:id, tenantId:tenantId, name:name}" -o json
+            az account list --output table || true
+            LOGIN_SUB=$(az account show --query id -o tsv || true)
+            LOGIN_TENANT=$(az account show --query tenantId -o tsv || true)
+            if [ -z "${LOGIN_SUB}" ] || [ -z "${LOGIN_TENANT}" ]; then
+              echo "::error::Azure CLI context is empty after login"; exit 1
+            fi
+            if [ "${LOGIN_SUB}" != "${ARM_SUBSCRIPTION_ID}" ] || [ "${LOGIN_TENANT}" != "${ARM_TENANT_ID}" ]; then
+              echo "::error::Mismatch between AZURE_CREDENTIALS (tenant/sub) and current az context"
+              echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
               exit 1
             fi
-            az account set --subscription "${ARM_SUBSCRIPTION_ID}"
 
         - name: Terraform init
           working-directory: ${{ env.WORKING_DIR }}

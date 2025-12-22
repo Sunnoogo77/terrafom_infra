@@ -74,6 +74,12 @@
 - Secrets/vars attendus : `AZURE_CREDENTIALS` (JSON Service Principal) et `TF_VAR_sql_admin_password`. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l'état actuel.
 - Génération `AZURE_CREDENTIALS` : créer un Service Principal avec un rôle adapté (RG) puis `az ad sp create-for-rbac --name "<name>" --role Contributor --scopes "/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth` et placer la sortie JSON dans le secret GitHub `AZURE_CREDENTIALS`. Les champs `clientId`, `clientSecret`, `subscriptionId`, `tenantId` doivent provenir du même tenant et de la même souscription (ne pas mélanger app/tenant et subscription).
 - Upload SARIF : l’envoi vers Code Scanning est conditionné par `ENABLE_CODE_SCANNING_UPLOAD` (par défaut "false"). Pour l’activer, configurer Code Scanning dans GitHub (Settings → Security → Code security and analysis) puis passer `ENABLE_CODE_SCANNING_UPLOAD: "true"` dans les env du workflow; le fichier SARIF est de toute façon publié en artifact (`trivy-sarif`).
+- Secrets CI/CD à conserver : `AZURE_CREDENTIALS` (JSON complet ci-dessus) et `TF_VAR_sql_admin_password`. Les anciens secrets `AZURE_CLIENT_ID/TENANT_ID/SUBSCRIPTION_ID/CLIENT_SECRET` peuvent être supprimés dès que le secret JSON est en place. Vérifier que le Service Principal a un rôle sur la souscription ciblée (au moins Contributor sur le RG).
+
+### Troubleshooting login Azure (CI)
+- Erreur “subscription ... doesn't exist” : tenant/subscription du SPN différents ou mauvaise subscriptionId dans `AZURE_CREDENTIALS`.
+- Erreur “has access to 0 subscriptions” : rôle manquant pour le SPN sur la souscription/RG.
+- Échec de connexion ou token invalide : secret `clientSecret` expiré dans `AZURE_CREDENTIALS`, régénérer le SPN ou mettre à jour le secret.
 
 ## Secrets GitHub requis
 - `AZURE_CREDENTIALS` : JSON Service Principal Azure contenant `clientId`, `clientSecret`, `subscriptionId`, `tenantId`.
