@@ -98,11 +98,6 @@ variable "enable_diagnostics" {
   type        = bool
   description = "Enable diagnostics to Log Analytics"
   default     = false
-
-  validation {
-    condition     = var.enable_diagnostics == false || var.log_analytics_workspace_id != ""
-    error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
-  }
 }
 
 locals {

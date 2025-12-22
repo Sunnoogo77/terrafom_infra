@@ -72,11 +72,6 @@ variable "enable_diagnostics" {
   description = "Enable diagnostics/auditing to Log Analytics"
   default     = false
 
-
-  validation {
-    condition     = var.enable_diagnostics == false || var.log_analytics_workspace_id != ""
-    error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
-  }
 }
 locals {
   sql_server_name = "${var.project_name}-sql-${var.env}"
