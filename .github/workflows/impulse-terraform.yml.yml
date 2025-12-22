@@ -188,19 +188,24 @@ jobs:
               GH_TOKEN: ${{ github.token }}
             run: |
               set -euo pipefail
-              # Code scanning upload fails (and shows a red step) when the feature isn't enabled.
-              # Use the Code Scanning API as a capability probe.
-              HTTP_CODE="$(curl -sS -o /dev/null -w "%{http_code}" \
+              # upload-sarif fails (and shows a red step) when Code Scanning isn't enabled for the repo.
+              # Prefer the repo's security_and_analysis status flags; if unavailable, default to disabled.
+              REPO_JSON_FILE="$(mktemp)"
+              curl -fsSL \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
                 -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/code-scanning/alerts?per_page=1" \
-                || true)"
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}" \
+                -o "${REPO_JSON_FILE}" || true
 
-              if [ "${HTTP_CODE}" = "200" ]; then
+              ADV_STATUS="$(python -c "import json; d=json.load(open(r'${REPO_JSON_FILE}')); print(((d.get('security_and_analysis') or {}).get('advanced_security') or {}).get('status') or 'unknown')" 2>/dev/null || echo unknown)"
+              CS_STATUS="$(python -c "import json; d=json.load(open(r'${REPO_JSON_FILE}')); print(((d.get('security_and_analysis') or {}).get('code_scanning') or {}).get('status') or 'unknown')" 2>/dev/null || echo unknown)"
+
+              echo "Detected advanced_security.status=${ADV_STATUS}, code_scanning.status=${CS_STATUS}"
+              if [ "${ADV_STATUS}" = "enabled" ] && [ "${CS_STATUS}" = "enabled" ]; then
                 echo "enabled=true" >> "$GITHUB_OUTPUT"
               else
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
-                echo "Code scanning not enabled/available (http=${HTTP_CODE}); skipping SARIF upload."
+                echo "Code scanning not enabled/available; skipping SARIF upload."
               fi
 
           - name: Upload Trivy SARIF
