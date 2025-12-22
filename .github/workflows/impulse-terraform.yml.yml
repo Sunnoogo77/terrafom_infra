@@ -173,7 +173,7 @@ jobs:
               -backend-config="resource_group_name=${TF_BACKEND_RESOURCE_GROUP_NAME}"
               -backend-config="storage_account_name=${TF_BACKEND_STORAGE_ACCOUNT_NAME}"
               -backend-config="container_name=${TF_BACKEND_CONTAINER_NAME}"
-              -backend-config="key=${TF_BACKEND_KEY}"
+              -backend-config="use_azuread_auth=true"
 
 
           - name: Terraform plan
@@ -297,7 +297,7 @@ jobs:
               -backend-config="resource_group_name=${TF_BACKEND_RESOURCE_GROUP_NAME}"
               -backend-config="storage_account_name=${TF_BACKEND_STORAGE_ACCOUNT_NAME}"
               -backend-config="container_name=${TF_BACKEND_CONTAINER_NAME}"
-              -backend-config="key=${TF_BACKEND_KEY}"
+              -backend-config="use_azuread_auth=true"
 
           - name: Terraform apply (approved plan)
             working-directory: ${{ env.WORKING_DIR }}
@@ -360,7 +360,7 @@ jobs:
             -backend-config="resource_group_name=${TF_BACKEND_RESOURCE_GROUP_NAME}"
             -backend-config="storage_account_name=${TF_BACKEND_STORAGE_ACCOUNT_NAME}"
             -backend-config="container_name=${TF_BACKEND_CONTAINER_NAME}"
-            -backend-config="key=${TF_BACKEND_KEY}"
+            -backend-config="use_azuread_auth=true"
 
         - name: Terraform destroy
           working-directory: ${{ env.WORKING_DIR }}
