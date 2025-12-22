@@ -121,8 +121,8 @@ jobs:
         env:
           TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
           TF_VAR_env: "dev"
-          TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN }}
-          TF_VAR_frontend_repository_url: ${{ vars.FRONTEND_REPOSITORY_URL }}
+          TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN != '' && secrets.TF_VAR_SQL_ADMIN_LOGIN || vars.TF_VAR_SQL_ADMIN_LOGIN }}
+          TF_VAR_frontend_repository_url: ${{ secrets.TF_VAR_FRONTEND_REPOSITORY_URL != '' && secrets.TF_VAR_FRONTEND_REPOSITORY_URL || vars.FRONTEND_REPOSITORY_URL }}
           ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
           ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
           ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
@@ -162,6 +162,7 @@ jobs:
               for var in TF_VAR_env TF_VAR_sql_admin_login TF_VAR_frontend_repository_url TF_VAR_sql_admin_password; do
                 if [ -z "${!var:-}" ]; then
                   echo "::error::Missing Terraform variable: $var"
+                  echo "::error::Expect secrets.TF_VAR_SQL_ADMIN_LOGIN / secrets.TF_VAR_FRONTEND_REPOSITORY_URL or vars.TF_VAR_SQL_ADMIN_LOGIN / vars.FRONTEND_REPOSITORY_URL to be set."
                   exit 1
                 fi
               done
