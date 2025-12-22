@@ -182,27 +182,15 @@ resource "azurerm_monitor_diagnostic_setting" "acr_diagnostics" {
 
   enabled_log {
     category = "ContainerRegistryRepositoryEvents"
-
-    retention_policy {
-      enabled = false
-    }
   }
 
   enabled_log {
     category = "ContainerRegistryLoginEvents"
-
-    retention_policy {
-      enabled = false
-    }
   }
 
   metric {
     category = "AllMetrics"
     enabled  = true
-
-    retention_policy {
-      enabled = false
-    }
   }
 }
 

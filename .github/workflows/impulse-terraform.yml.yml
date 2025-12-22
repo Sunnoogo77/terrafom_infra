@@ -2,7 +2,7 @@ name: "Impulse - Terraform Infra & IAM"
 
 on:
     push:
-        branches: ["main", "branch-1"]
+        branches: ["main", "branch-1", "branch-2"]
         paths:
           - "envs/**"
           - "modules/**"
@@ -143,6 +143,12 @@ jobs:
             uses: azure/login@v2
             with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+          - name: Ensure provider registrations (Microsoft.App)
+            shell: bash
+            run: |
+              set -euo pipefail
+              az provider register --namespace Microsoft.App --wait
 
           - name: Preflight backend config
             shell: bash

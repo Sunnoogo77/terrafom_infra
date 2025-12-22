@@ -174,19 +174,11 @@ resource "azurerm_monitor_diagnostic_setting" "sql_diagnostics" {
 
   enabled_log {
     category = "SQLSecurityAuditEvents"
-
-    retention_policy {
-      enabled = false
-    }
   }
 
   metric {
     category = "AllMetrics"
     enabled  = true
-
-    retention_policy {
-      enabled = false
-    }
   }
 }
 

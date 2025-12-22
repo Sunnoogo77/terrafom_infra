@@ -70,6 +70,7 @@ resource "azurerm_subnet" "endpoints" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.10.4.0/24"]
+  service_endpoints    = ["Microsoft.KeyVault"]
 }
 
 # --------------------------
@@ -89,6 +90,7 @@ resource "azurerm_network_security_rule" "backend_allow_frontdoor" {
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
+  source_port_range           = "*"
   source_address_prefix       = "AzureFrontDoor.Backend"
   destination_port_range      = "443"
   destination_address_prefix  = "*"
@@ -109,6 +111,7 @@ resource "azurerm_network_security_rule" "ia_allow_backend" {
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
+  source_port_range           = "*"
   source_address_prefix       = "10.10.1.0/24"
   destination_port_range      = "443"
   destination_address_prefix  = "*"
@@ -129,6 +132,7 @@ resource "azurerm_network_security_rule" "pe_allow_backend_ia" {
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
+  source_port_range           = "*"
   source_address_prefixes     = ["10.10.1.0/24", "10.10.2.0/24"]
   destination_port_range      = "443"
   destination_address_prefix  = "*"
