@@ -155,6 +155,17 @@ jobs:
                 fi
               done
 
+          - name: Preflight required TF vars
+            shell: bash
+            run: |
+              set -euo pipefail
+              for var in TF_VAR_env TF_VAR_sql_admin_login TF_VAR_frontend_repository_url TF_VAR_sql_admin_password; do
+                if [ -z "${!var:-}" ]; then
+                  echo "::error::Missing Terraform variable: $var"
+                  exit 1
+                fi
+              done
+
           - name: Préflight Azure credentials / subscription
             shell: bash
             env:

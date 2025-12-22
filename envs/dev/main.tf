@@ -168,6 +168,8 @@ module "rbac" {
   law_id     = module.monitoring.log_analytics_workspace_id
 
   storage_cmk_principal_id = module.storage.storage_identity_principal_id
+  enable_storage_cmk_role  = true
+  enable_law_rbac          = true
 
   groups = {
     infra     = module.groups.object_ids.infra
