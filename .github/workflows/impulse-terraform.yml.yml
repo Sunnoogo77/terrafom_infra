@@ -2,7 +2,7 @@ name: "Impulse - Terraform Infra & IAM"
 
 on:
     push:
-        branches: ["main"]
+        branches: ["main", "branch-1"]
         paths:
           - "envs/**"
           - "modules/**"
@@ -121,8 +121,8 @@ jobs:
         env:
           TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
           TF_VAR_env: "dev"
-          TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN }}
-          TF_VAR_frontend_repository_url: ${{ vars.FRONTEND_REPOSITORY_URL }}
+          TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN != '' && secrets.TF_VAR_SQL_ADMIN_LOGIN || vars.TF_VAR_SQL_ADMIN_LOGIN }}
+          TF_VAR_frontend_repository_url: ${{ secrets.TF_VAR_FRONTEND_REPOSITORY_URL != '' && secrets.TF_VAR_FRONTEND_REPOSITORY_URL || vars.TF_VAR_FRONTEND_REPOSITORY_URL || vars.FRONTEND_REPOSITORY_URL }}
           ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
           ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
           ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
@@ -151,6 +151,18 @@ jobs:
               for var in TF_BACKEND_RESOURCE_GROUP_NAME TF_BACKEND_STORAGE_ACCOUNT_NAME TF_BACKEND_CONTAINER_NAME TF_BACKEND_KEY; do
                 if [ -z "${!var:-}" ]; then
                   echo "::error::Missing backend config env: $var"
+                  exit 1
+                fi
+              done
+
+          - name: Preflight required TF vars
+            shell: bash
+            run: |
+              set -euo pipefail
+              for var in TF_VAR_env TF_VAR_sql_admin_login TF_VAR_frontend_repository_url TF_VAR_sql_admin_password; do
+                if [ -z "${!var:-}" ]; then
+                  echo "::error::Missing Terraform variable: $var"
+                  echo "::error::Expect secrets.TF_VAR_SQL_ADMIN_LOGIN / secrets.TF_VAR_FRONTEND_REPOSITORY_URL or vars.TF_VAR_SQL_ADMIN_LOGIN / vars.TF_VAR_FRONTEND_REPOSITORY_URL (or legacy vars.FRONTEND_REPOSITORY_URL) to be set."
                   exit 1
                 fi
               done
@@ -210,6 +222,44 @@ jobs:
                   --output none
               fi
 
+          - name: Check state lock (lease) status
+            shell: bash
+            run: |
+              set -euo pipefail
+              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
+              INFO="$(az storage blob show \
+                --auth-mode login \
+                --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                --container-name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                --name "${{ env.TF_BACKEND_KEY }}" \
+                -o json 2>/dev/null || echo "{}")"
+              LEASE=$(echo "${INFO}" | python - <<'PY'
+              import sys, json, datetime
+              data=json.loads(sys.stdin.read() or "{}")
+              props=data.get("properties") or {}
+              lease_state=props.get("lease",{}).get("state") or props.get("leaseState")
+              last_modified=props.get("lastModified")
+              if lease_state:
+                  print(lease_state)
+              if last_modified:
+                  pass
+              PY
+              )
+                            LAST_MOD=$(echo "${INFO}" | jq -r '.properties.lastModified // empty')
+                            if [ "${LEASE:-}" = "leased" ] && [ -n "${LAST_MOD:-}" ]; then
+                              AGE_SEC=$(python - <<'PY'
+              import sys, datetime
+              ts=sys.argv[1]
+              dt=datetime.datetime.fromisoformat(ts.replace('Z','+00:00'))
+              age=(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)-dt).total_seconds()
+              print(int(age))
+              PY
+              ${LAST_MOD})
+                              echo "State blob lease detected, age=${AGE_SEC}s (lastModified=${LAST_MOD})"
+                              if [ "${AGE_SEC}" -gt 1800 ]; then
+                                echo "::warning::Lease older than 30 minutes. Consider breaking the lease: az storage blob lease break --auth-mode login --account-name ${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }} --container-name ${{ env.TF_BACKEND_CONTAINER_NAME }} --blob ${{ env.TF_BACKEND_KEY }}"
+                              fi
+                            fi
           - name: Terraform init (remote backend via Azure AD)
             working-directory: ${{ env.WORKING_DIR }}
             shell: bash

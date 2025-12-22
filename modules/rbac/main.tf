@@ -9,49 +9,44 @@ terraform {
   }
 }
 
-
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
-}
-
 resource "azurerm_role_assignment" "rg_infra_owner" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Owner"
   principal_id         = var.groups.infra
 }
 
 resource "azurerm_role_assignment" "rg_devsecops_contrib" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Contributor"
   principal_id         = var.groups.devsecops
 }
 
 resource "azurerm_role_assignment" "rg_dev_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.dev
 }
 
 resource "azurerm_role_assignment" "rg_ia_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.ia
 }
 
 resource "azurerm_role_assignment" "rg_data_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Reader"
   principal_id         = var.groups.data
 }
 
 resource "azurerm_role_assignment" "rg_security_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Security Reader"
   principal_id         = var.groups.security
 }
 
 resource "azurerm_role_assignment" "rg_soc_security_reader" {
-  scope                = data.azurerm_resource_group.rg.id
+  scope                = var.resource_group_id
   role_definition_name = "Security Reader"
   principal_id         = var.groups.soc
 }
@@ -96,7 +91,7 @@ resource "azurerm_role_assignment" "kv_soc_reader" {
 
 # Allow Storage Account to use Key Vault key for CMK encryption
 resource "azurerm_role_assignment" "kv_storage_cmk_user" {
-  count                = var.storage_cmk_principal_id == "" ? 0 : 1
+  count                = var.enable_storage_cmk_role ? 1 : 0
   scope                = var.kv_id
   role_definition_name = "Key Vault Crypto Service Encryption User"
   principal_id         = var.storage_cmk_principal_id
@@ -149,14 +144,14 @@ resource "azurerm_role_assignment" "acr_devsecops_push" {
 
 # Log Analytics RBAC (SOC / Security)
 resource "azurerm_role_assignment" "law_security_reader" {
-  count                = var.law_id == "" ? 0 : 1
+  count                = var.enable_law_rbac ? 1 : 0
   scope                = var.law_id
   role_definition_name = "Log Analytics Reader"
   principal_id         = var.groups.security
 }
 
 resource "azurerm_role_assignment" "law_soc_reader" {
-  count                = var.law_id == "" ? 0 : 1
+  count                = var.enable_law_rbac ? 1 : 0
   scope                = var.law_id
   role_definition_name = "Log Analytics Reader"
   principal_id         = var.groups.soc

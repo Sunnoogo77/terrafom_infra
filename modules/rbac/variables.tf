@@ -1,4 +1,4 @@
-variable "resource_group_name" { type = string }
+variable "resource_group_id" { type = string }
 variable "backend_mi_id" { type = string }
 variable "ai_mi_id" { type = string }
 
@@ -11,11 +11,21 @@ variable "law_id" {
   description = "Log Analytics Workspace ID for SOC reader role"
   default     = ""
 }
+variable "enable_law_rbac" {
+  type        = bool
+  description = "Create SOC/Security Reader assignments on LAW"
+  default     = false
+}
 
 variable "storage_cmk_principal_id" {
   type        = string
   description = "Principal ID of the Storage Account managed identity (for Key Vault CMK access)"
   default     = ""
+}
+variable "enable_storage_cmk_role" {
+  type        = bool
+  description = "Create role assignment for Storage CMK identity on Key Vault"
+  default     = false
 }
 
 variable "groups" {

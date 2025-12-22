@@ -36,7 +36,14 @@ variable "storage_sku_name" {
 
 variable "log_analytics_workspace_id" {
   type        = string
+  default     = ""
   description = "Log Analytics workspace ID"
+}
+
+variable "enable_diagnostics" {
+  type        = bool
+  description = "Enable diagnostics to Log Analytics"
+  default     = false
 }
 
 variable "cmk_key_id" {
@@ -185,6 +192,7 @@ resource "azurerm_private_endpoint" "storage_blob_pe" {
 # (Optionnel) Diagnostics vers Log Analytics
 # ------------------------------
 resource "azurerm_monitor_diagnostic_setting" "storage_diagnostics" {
+  count                      = var.enable_diagnostics ? 1 : 0
   name                       = "${local.storage_account_name}-diag"
   target_resource_id         = azurerm_storage_account.sa.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
@@ -209,6 +217,7 @@ resource "azurerm_monitor_diagnostic_setting" "storage_diagnostics" {
 
 # Blob service diagnostics (some policies expect diagnostics on blobServices/default)
 resource "azurerm_monitor_diagnostic_setting" "storage_blob_service_diagnostics" {
+  count                      = var.enable_diagnostics ? 1 : 0
   name                       = "${local.storage_account_name}-blob-diag"
   target_resource_id         = "${azurerm_storage_account.sa.id}/blobServices/default"
   log_analytics_workspace_id = var.log_analytics_workspace_id
