@@ -182,13 +182,20 @@ jobs:
             run: |
               set -euo pipefail
               az account set --subscription "${ARM_SUBSCRIPTION_ID}"
-              az storage container create \
+              EXISTS="$(az storage container exists \
                 --auth-mode login \
                 --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
                 --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
-                --fail-on-exist false \
-                --only-show-errors \
-                --output none
+                --query exists -o tsv 2>/dev/null || echo false)"
+
+              if [ "${EXISTS}" != "true" ]; then
+                az storage container create \
+                  --auth-mode login \
+                  --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                  --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                  --only-show-errors \
+                  --output none
+              fi
 
           - name: Terraform init (remote backend via Azure AD)
             working-directory: ${{ env.WORKING_DIR }}
@@ -315,13 +322,20 @@ jobs:
             run: |
               set -euo pipefail
               az account set --subscription "${ARM_SUBSCRIPTION_ID}"
-              az storage container create \
+              EXISTS="$(az storage container exists \
                 --auth-mode login \
                 --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
                 --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
-                --fail-on-exist false \
-                --only-show-errors \
-                --output none
+                --query exists -o tsv 2>/dev/null || echo false)"
+
+              if [ "${EXISTS}" != "true" ]; then
+                az storage container create \
+                  --auth-mode login \
+                  --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                  --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                  --only-show-errors \
+                  --output none
+              fi
 
           - name: Download Terraform plan
             uses: actions/download-artifact@v4
@@ -399,13 +413,20 @@ jobs:
           run: |
             set -euo pipefail
             az account set --subscription "${ARM_SUBSCRIPTION_ID}"
-            az storage container create \
+            EXISTS="$(az storage container exists \
               --auth-mode login \
               --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
               --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
-              --fail-on-exist false \
-              --only-show-errors \
-              --output none
+              --query exists -o tsv 2>/dev/null || echo false)"
+
+            if [ "${EXISTS}" != "true" ]; then
+              az storage container create \
+                --auth-mode login \
+                --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                --only-show-errors \
+                --output none
+            fi
 
         - name: Terraform init (remote backend via Azure AD)
           working-directory: ${{ env.WORKING_DIR }}
