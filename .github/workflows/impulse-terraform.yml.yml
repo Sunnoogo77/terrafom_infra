@@ -177,6 +177,19 @@ jobs:
                               exit 1
                             fi
 
+          - name: Ensure Terraform state container exists
+            shell: bash
+            run: |
+              set -euo pipefail
+              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
+              az storage container create \
+                --auth-mode login \
+                --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                --fail-on-exist false \
+                --only-show-errors \
+                --output none
+
           - name: Terraform init (remote backend via Azure AD)
             working-directory: ${{ env.WORKING_DIR }}
             shell: bash
@@ -297,6 +310,19 @@ jobs:
                 exit 1
               fi
 
+          - name: Ensure Terraform state container exists
+            shell: bash
+            run: |
+              set -euo pipefail
+              az account set --subscription "${ARM_SUBSCRIPTION_ID}"
+              az storage container create \
+                --auth-mode login \
+                --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+                --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+                --fail-on-exist false \
+                --only-show-errors \
+                --output none
+
           - name: Download Terraform plan
             uses: actions/download-artifact@v4
             with:
@@ -367,6 +393,19 @@ jobs:
               echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
               exit 1
             fi
+
+        - name: Ensure Terraform state container exists
+          shell: bash
+          run: |
+            set -euo pipefail
+            az account set --subscription "${ARM_SUBSCRIPTION_ID}"
+            az storage container create \
+              --auth-mode login \
+              --account-name "${{ env.TF_BACKEND_STORAGE_ACCOUNT_NAME }}" \
+              --name "${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+              --fail-on-exist false \
+              --only-show-errors \
+              --output none
 
         - name: Terraform init (remote backend via Azure AD)
           working-directory: ${{ env.WORKING_DIR }}
