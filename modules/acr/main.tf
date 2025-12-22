@@ -104,7 +104,7 @@ variable "enable_diagnostics" {
     error_message = "log_analytics_workspace_id must be set when enable_diagnostics is true."
   }
 }
-  
+
 locals {
   # ACR name : 5-50 chars, lowercase alphanum only
   raw_name = "${var.project_name}acr${var.env}"
