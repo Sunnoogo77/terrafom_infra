@@ -156,8 +156,7 @@ module "monitoring" {
 module "rbac" {
   source = "../../modules/rbac"
 
-  resource_group_id   = module.network.resource_group_id
-  resource_group_name = module.network.resource_group_name
+  resource_group_id = module.network.resource_group_id
 
   backend_mi_id = module.backend_app.backend_identity_principal_id
   ai_mi_id      = module.ai_app.ai_identity_principal_id
