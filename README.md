@@ -73,6 +73,7 @@
   - `apply` (workflow_dispatch, env dev) : télécharge l'artefact, init local backend, `terraform apply`.
 - Secrets/vars attendus : `AZURE_CREDENTIALS` (JSON Service Principal) et `TF_VAR_sql_admin_password`. Le backend Terraform est local (`backend "local"` et `-backend=false` en CI), donc pas de verrouillage distant dans l'état actuel.
 - Génération `AZURE_CREDENTIALS` : créer un Service Principal avec un rôle adapté (RG) puis `az ad sp create-for-rbac --name "<name>" --role Contributor --scopes "/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth` et placer la sortie JSON dans le secret GitHub `AZURE_CREDENTIALS`. Les champs `clientId`, `clientSecret`, `subscriptionId`, `tenantId` doivent provenir du même tenant et de la même souscription (ne pas mélanger app/tenant et subscription).
+- Upload SARIF : l’envoi vers Code Scanning est conditionné par `ENABLE_CODE_SCANNING_UPLOAD` (par défaut "false"). Pour l’activer, configurer Code Scanning dans GitHub (Settings → Security → Code security and analysis) puis passer `ENABLE_CODE_SCANNING_UPLOAD: "true"` dans les env du workflow; le fichier SARIF est de toute façon publié en artifact (`trivy-sarif`).
 
 ## Secrets GitHub requis
 - `AZURE_CREDENTIALS` : JSON Service Principal Azure contenant `clientId`, `clientSecret`, `subscriptionId`, `tenantId`.

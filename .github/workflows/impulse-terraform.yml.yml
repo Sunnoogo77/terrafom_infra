@@ -31,6 +31,7 @@ permissions:
 env:
   TF_VERSION: "1.8.5"
   WORKING_DIR: "envs/dev"
+  ENABLE_CODE_SCANNING_UPLOAD: "false"
 
 jobs:
     validate:
@@ -180,40 +181,18 @@ jobs:
                 format: "sarif"
                 output: "trivy-results.sarif"
 
-          - name: Detect Code Scanning availability
-            id: code_scanning
-            if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-            shell: bash
-            env:
-              GH_TOKEN: ${{ github.token }}
-            run: |
-              set -euo pipefail
-              # upload-sarif fails (and shows a red step) when Code Scanning isn't enabled for the repo.
-              # Prefer the repo's security_and_analysis status flags; if unavailable, default to disabled.
-              REPO_JSON_FILE="$(mktemp)"
-              curl -fsSL \
-                -H "Authorization: Bearer ${GH_TOKEN}" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}" \
-                -o "${REPO_JSON_FILE}" || true
-
-              ADV_STATUS="$(python -c "import json; d=json.load(open(r'${REPO_JSON_FILE}')); print(((d.get('security_and_analysis') or {}).get('advanced_security') or {}).get('status') or 'unknown')" 2>/dev/null || echo unknown)"
-              CS_STATUS="$(python -c "import json; d=json.load(open(r'${REPO_JSON_FILE}')); print(((d.get('security_and_analysis') or {}).get('code_scanning') or {}).get('status') or 'unknown')" 2>/dev/null || echo unknown)"
-
-              echo "Detected advanced_security.status=${ADV_STATUS}, code_scanning.status=${CS_STATUS}"
-              if [ "${ADV_STATUS}" = "enabled" ] && [ "${CS_STATUS}" = "enabled" ]; then
-                echo "enabled=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "enabled=false" >> "$GITHUB_OUTPUT"
-                echo "Code scanning not enabled/available; skipping SARIF upload."
-              fi
-
           - name: Upload Trivy SARIF
-            if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && steps.code_scanning.outputs.enabled == 'true'
+            if: env.ENABLE_CODE_SCANNING_UPLOAD == 'true'
             uses: github/codeql-action/upload-sarif@v4
-            continue-on-error: true
             with:
               sarif_file: "trivy-results.sarif"
+
+          - name: Upload Trivy SARIF artifact
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: trivy-sarif
+              path: trivy-results.sarif
 
           - name: Trufflehog Secret Scan
             uses: trufflesecurity/trufflehog@main
