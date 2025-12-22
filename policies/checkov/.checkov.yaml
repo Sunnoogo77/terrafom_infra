@@ -1,6 +1,7 @@
 quiet: true
 compact: true
 framework: terraform
+terms: []
 
 
 # Exemple : si tu veux ignorer certains checks plus tard
