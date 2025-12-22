@@ -7,12 +7,14 @@ on:
           - "envs/**"
           - "modules/**"
           - "policies/**"
+          - ".github/workflows/**"
     pull_request:
         branches: ["main"]
         paths:
           - "envs/**"
           - "modules/**"
           - "policies/**"
+          - ".github/workflows/**"
     workflow_dispatch:
         inputs:
           action:
