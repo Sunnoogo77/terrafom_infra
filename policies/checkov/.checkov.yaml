@@ -18,5 +18,3 @@ skip-check:
 # Scan both environment and modules.
 directory:
   - envs
-
-#test ---- 
