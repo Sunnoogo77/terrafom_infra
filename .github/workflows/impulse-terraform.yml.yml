@@ -135,30 +135,30 @@ jobs:
                 echo "::error::AZURE_CREDENTIALS is not set"; exit 1
               fi
               python - <<'PY'
-import json, os, sys
-raw=os.environ["AZ_CREDS"]
-try:
-    data=json.loads(raw)
-except Exception as e:
-    sys.exit(f"AZURE_CREDENTIALS is not valid JSON: {e}")
-required=["clientId","clientSecret","subscriptionId","tenantId"]
-missing=[k for k in required if not data.get(k)]
-if missing:
-    sys.exit("AZURE_CREDENTIALS missing keys: " + ",".join(missing))
-print(f"AZURE_CREDENTIALS tenantId={data['tenantId']} subscriptionId={data['subscriptionId']}")
-PY
-              az account show --query "{id:id, tenantId:tenantId, name:name}" -o json
-              az account list --output table || true
-              LOGIN_SUB=$(az account show --query id -o tsv || true)
-              LOGIN_TENANT=$(az account show --query tenantId -o tsv || true)
-              if [ -z "${LOGIN_SUB}" ] || [ -z "${LOGIN_TENANT}" ]; then
-                echo "::error::Azure CLI context is empty after login"; exit 1
-              fi
-              if [ "${LOGIN_SUB}" != "${ARM_SUBSCRIPTION_ID}" ] || [ "${LOGIN_TENANT}" != "${ARM_TENANT_ID}" ]; then
-                echo "::error::Mismatch between AZURE_CREDENTIALS (tenant/sub) and current az context"
-                echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
-                exit 1
-              fi
+              import json, os, sys
+              raw=os.environ["AZ_CREDS"]
+              try:
+                  data=json.loads(raw)
+              except Exception as e:
+                  sys.exit(f"AZURE_CREDENTIALS is not valid JSON: {e}")
+              required=["clientId","clientSecret","subscriptionId","tenantId"]
+              missing=[k for k in required if not data.get(k)]
+              if missing:
+                  sys.exit("AZURE_CREDENTIALS missing keys: " + ",".join(missing))
+              print(f"AZURE_CREDENTIALS tenantId={data['tenantId']} subscriptionId={data['subscriptionId']}")
+              PY
+                            az account show --query "{id:id, tenantId:tenantId, name:name}" -o json
+                            az account list --output table || true
+                            LOGIN_SUB=$(az account show --query id -o tsv || true)
+                            LOGIN_TENANT=$(az account show --query tenantId -o tsv || true)
+                            if [ -z "${LOGIN_SUB}" ] || [ -z "${LOGIN_TENANT}" ]; then
+                              echo "::error::Azure CLI context is empty after login"; exit 1
+                            fi
+                            if [ "${LOGIN_SUB}" != "${ARM_SUBSCRIPTION_ID}" ] || [ "${LOGIN_TENANT}" != "${ARM_TENANT_ID}" ]; then
+                              echo "::error::Mismatch between AZURE_CREDENTIALS (tenant/sub) and current az context"
+                              echo "::error::Expected subscription=${ARM_SUBSCRIPTION_ID} tenant=${ARM_TENANT_ID}, got subscription=${LOGIN_SUB} tenant=${LOGIN_TENANT}"
+                              exit 1
+                            fi
 
           - name: Terraform init (no backend for CI)
             working-directory: ${{ env.WORKING_DIR }}
