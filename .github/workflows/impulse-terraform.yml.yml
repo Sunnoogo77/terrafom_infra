@@ -50,7 +50,10 @@ jobs:
 
         env:
           # terraform validate needs a value, but we avoid injecting real secrets on PRs.
-          TF_VAR_sql_admin_password: "dummy-for-validate"
+          # TF_VAR_sql_admin_password: "dummy-for-validate"
+          TF_VAR_env: "dev"
+          TF_VAR_sql_admin_login: "dummy-sql-admin"
+          TF_VAR_frontend_repository_url: "https://example.invalid/repo.git"
 
         steps:
           - name: Checkout code
@@ -117,6 +120,9 @@ jobs:
 
         env:
           TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+          TF_VAR_env: "dev"
+          TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN }}
+          TF_VAR_frontend_repository_url: ${{ vars.FRONTEND_REPOSITORY_URL }}
           ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
           ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
           ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
