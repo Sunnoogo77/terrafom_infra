@@ -82,8 +82,14 @@ module "acr" {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Container Apps (conditional - requires images in ACR)
+# Set deploy_apps = true when images are available
+# ─────────────────────────────────────────────────────────────────────────────
+
 module "backend_app" {
   source = "../../modules/backend_app"
+  count  = var.deploy_apps ? 1 : 0
 
   env                 = var.env
   location            = var.location
@@ -102,30 +108,38 @@ module "backend_app" {
   ingress_external_enabled = true
 }
 
+# NOTE: AI service has been merged into backend.
+# The ai_app module is no longer deployed.
+# To re-enable AI as a separate service in the future, uncomment and adapt:
+#
+# module "ai_app" {
+#   source = "../../modules/ai_app"
+#   count  = var.deploy_apps ? 1 : 0
+#
+#   env                 = var.env
+#   location            = var.location
+#   project_name        = var.project_name
+#   resource_group_name = module.network.resource_group_name
+#
+#   aca_env_id       = module.backend_app[0].aca_env_id
+#   acr_login_server = module.acr.login_server
+#
+#   ai_image       = "impulse/ai-service"
+#   ai_image_tag   = "dev"
+#   container_port = 8001
+#
+#   backend_url = "https://${module.backend_app[0].backend_fqdn}"
+# }
 
-module "ai_app" {
-  source = "../../modules/ai_app"
-
-  env                 = var.env
-  location            = var.location
-  project_name        = var.project_name
-  resource_group_name = module.network.resource_group_name
-
-  aca_env_id       = module.backend_app.aca_env_id
-  acr_login_server = module.acr.login_server
-
-  ai_image       = "impulse/ai-service"
-  ai_image_tag   = "dev"
-  container_port = 8001
-
-  backend_url = "https://${module.backend_app.backend_fqdn}"
-}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Frontend (Static Web App) - conditional deployment
+# ─────────────────────────────────────────────────────────────────────────────
 
 module "frontend" {
   source = "../../modules/frontend_app"
-
+  count  = var.deploy_frontend ? 1 : 0
 
   env                 = var.env
   location            = var.location
@@ -138,7 +152,8 @@ module "frontend" {
   sku_tier = var.frontend_sku_tier
   sku_size = var.frontend_sku_size
 
-  backend_url = "https://${module.backend_app.backend_fqdn}"
+  # Safe reference: use backend FQDN if deployed, otherwise empty string
+  backend_url = var.deploy_apps ? "https://${module.backend_app[0].backend_fqdn}" : ""
   app_env     = var.env
 }
 
@@ -158,8 +173,10 @@ module "rbac" {
 
   resource_group_id = module.network.resource_group_id
 
-  backend_mi_id = module.backend_app.backend_identity_principal_id
-  ai_mi_id      = module.ai_app.ai_identity_principal_id
+  # Safe references: pass empty string if apps not deployed
+  # RBAC module will skip role assignments for empty principal IDs
+  backend_mi_id = var.deploy_apps ? module.backend_app[0].backend_identity_principal_id : ""
+  ai_mi_id      = "" # AI service merged into backend - no separate identity
 
   kv_id      = module.keyvault.key_vault_id
   storage_id = module.storage.storage_account_id

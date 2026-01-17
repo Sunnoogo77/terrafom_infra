@@ -65,13 +65,16 @@ resource "azurerm_role_assignment" "kv_secrets_officer" {
 }
 
 # Assign Key Vault access to backend and AI managed identities
+# These are conditional - only created if the principal ID is not empty
 resource "azurerm_role_assignment" "kv_backend_mi" {
+  count                = var.backend_mi_id != "" ? 1 : 0
   scope                = var.kv_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = var.backend_mi_id
 }
 
 resource "azurerm_role_assignment" "kv_ai_mi" {
+  count                = var.ai_mi_id != "" ? 1 : 0
   scope                = var.kv_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = var.ai_mi_id
@@ -97,14 +100,16 @@ resource "azurerm_role_assignment" "kv_storage_cmk_user" {
   principal_id         = var.storage_cmk_principal_id
 }
 
-#Storage RBAC
+# Storage RBAC - conditional for managed identities
 resource "azurerm_role_assignment" "storage_backend_rw" {
+  count                = var.backend_mi_id != "" ? 1 : 0
   scope                = var.storage_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = var.backend_mi_id
 }
 
 resource "azurerm_role_assignment" "storage_ai_r" {
+  count                = var.ai_mi_id != "" ? 1 : 0
   scope                = var.storage_id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = var.ai_mi_id
@@ -123,14 +128,16 @@ resource "azurerm_role_assignment" "sql_data_contrib" {
   principal_id         = var.groups.data
 }
 
-#ACR RBAC
+# ACR RBAC - conditional for managed identities
 resource "azurerm_role_assignment" "acr_backend_pull" {
+  count                = var.backend_mi_id != "" ? 1 : 0
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.backend_mi_id
 }
 
 resource "azurerm_role_assignment" "acr_ai_pull" {
+  count                = var.ai_mi_id != "" ? 1 : 0
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.ai_mi_id

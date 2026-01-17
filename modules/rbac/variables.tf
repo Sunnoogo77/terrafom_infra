@@ -1,6 +1,16 @@
 variable "resource_group_id" { type = string }
-variable "backend_mi_id" { type = string }
-variable "ai_mi_id" { type = string }
+
+variable "backend_mi_id" {
+  type        = string
+  description = "Principal ID of the backend managed identity. Empty string to skip backend MI role assignments."
+  default     = ""
+}
+
+variable "ai_mi_id" {
+  type        = string
+  description = "Principal ID of the AI managed identity. Empty string to skip AI MI role assignments."
+  default     = ""
+}
 
 variable "kv_id" { type = string }
 variable "storage_id" { type = string }

@@ -65,3 +65,19 @@ variable "frontend_sku_size" {
   description = "SKU size for Static Web App"
   default     = "Free"
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Feature flags for infra-first deployment
+# ─────────────────────────────────────────────────────────────────────────────
+
+variable "deploy_apps" {
+  type        = bool
+  description = "Deploy Container Apps (backend). Set to false for infra-only deployment when images are not yet available in ACR."
+  default     = false
+}
+
+variable "deploy_frontend" {
+  type        = bool
+  description = "Deploy Static Web App for frontend. Set to false to skip frontend deployment."
+  default     = true
+}

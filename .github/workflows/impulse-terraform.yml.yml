@@ -54,6 +54,9 @@ jobs:
           TF_VAR_env: "dev"
           TF_VAR_sql_admin_login: "dummy-sql-admin"
           TF_VAR_frontend_repository_url: "https://example.invalid/repo.git"
+          # Infra-first: apps disabled by default for validation
+          TF_VAR_deploy_apps: "false"
+          TF_VAR_deploy_frontend: "true"
 
         steps:
           - name: Checkout code
@@ -123,6 +126,9 @@ jobs:
           TF_VAR_env: "dev"
           TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN != '' && secrets.TF_VAR_SQL_ADMIN_LOGIN || vars.TF_VAR_SQL_ADMIN_LOGIN }}
           TF_VAR_frontend_repository_url: ${{ secrets.TF_VAR_FRONTEND_REPOSITORY_URL != '' && secrets.TF_VAR_FRONTEND_REPOSITORY_URL || vars.TF_VAR_FRONTEND_REPOSITORY_URL || vars.FRONTEND_REPOSITORY_URL }}
+          # Infra-first deployment flags - override via secrets/vars if needed
+          TF_VAR_deploy_apps: ${{ vars.TF_VAR_DEPLOY_APPS || 'false' }}
+          TF_VAR_deploy_frontend: ${{ vars.TF_VAR_DEPLOY_FRONTEND || 'true' }}
           ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
           ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
           ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
@@ -363,6 +369,11 @@ jobs:
 
       env:
         TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+        TF_VAR_env: "dev"
+        TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN != '' && secrets.TF_VAR_SQL_ADMIN_LOGIN || vars.TF_VAR_SQL_ADMIN_LOGIN }}
+        TF_VAR_frontend_repository_url: ${{ secrets.TF_VAR_FRONTEND_REPOSITORY_URL != '' && secrets.TF_VAR_FRONTEND_REPOSITORY_URL || vars.TF_VAR_FRONTEND_REPOSITORY_URL || vars.FRONTEND_REPOSITORY_URL }}
+        TF_VAR_deploy_apps: ${{ vars.TF_VAR_DEPLOY_APPS || 'false' }}
+        TF_VAR_deploy_frontend: ${{ vars.TF_VAR_DEPLOY_FRONTEND || 'true' }}
         ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
         ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
         ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
@@ -454,6 +465,11 @@ jobs:
 
       env:
         TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+        TF_VAR_env: "dev"
+        TF_VAR_sql_admin_login: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN != '' && secrets.TF_VAR_SQL_ADMIN_LOGIN || vars.TF_VAR_SQL_ADMIN_LOGIN }}
+        TF_VAR_frontend_repository_url: ${{ secrets.TF_VAR_FRONTEND_REPOSITORY_URL != '' && secrets.TF_VAR_FRONTEND_REPOSITORY_URL || vars.TF_VAR_FRONTEND_REPOSITORY_URL || vars.FRONTEND_REPOSITORY_URL }}
+        TF_VAR_deploy_apps: ${{ vars.TF_VAR_DEPLOY_APPS || 'false' }}
+        TF_VAR_deploy_frontend: ${{ vars.TF_VAR_DEPLOY_FRONTEND || 'true' }}
         ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
         ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
         ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
@@ -525,6 +541,4 @@ jobs:
 
         - name: Terraform destroy
           working-directory: ${{ env.WORKING_DIR }}
-          run: terraform destroy -auto-approve
-
-# pipeline lance toi stp !!! 
+          run: terraform destroy -auto-approve 
