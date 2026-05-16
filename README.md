@@ -1,8 +1,13 @@
 # Documentation d’architecture – Impulse (Infra Azure & Terraform)
 
+Ce repository présente un projet d’infrastructure as code que j’ai conçu et structuré avec Terraform sur Azure.  
+L’objectif est de montrer, de façon concrète, ma capacité à mettre en place une architecture cloud modulaire, sécurisée et maintenable dans un contexte proche d’un cas réel.
+
 ## 1. Présentation générale du projet
 - Impulse déploie une plateforme applicative sur Azure, pilotée par Terraform. L’environnement actuellement décrit est `dev` (`envs/dev`).
+- Ce projet illustre un travail complet de conception et d’implémentation IaC : structuration par modules, séparation par domaines techniques et orchestration centralisée par environnement.
 - Vision DevSecOps : infrastructure codée dans des modules Terraform, pipeline GitHub Actions avec étapes de validation, plan et apply manuel, sécurité par RBAC et Managed Identities.
+- Positionnement portfolio : ce dépôt est publié pour valoriser une expérience concrète en infrastructure cloud, automatisation et bonnes pratiques sécurité.
 
 ## 2. Architecture cloud globale (Azure)
 - Fichier d’assemblage : `envs/dev/main.tf`.
